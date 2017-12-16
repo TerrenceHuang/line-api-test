@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/TerrenceHuang/line-api-test#readme",
   "dependencies": {
-    "@line/bot-sdk": "^5.2.0"
+    "@line/bot-sdk": "^5.2.0",
+    "express": "^4.16.2"
   }
 }
