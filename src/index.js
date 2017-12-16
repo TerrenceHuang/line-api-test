@@ -2,6 +2,7 @@
 
 const line = require('@line/bot-sdk');
 const express = require('express');
+const option = require('./option');
 
 // create LINE SDK config from env variables
 const config = {
@@ -18,7 +19,12 @@ const app = express();
 
 // register a webhook handler with middleware
 // about the middleware, please refer to doc
-app.post('/', line.middleware(config), (req, res) => {
+app.post('/webhook', line.middleware(config), (req, res) => {
+  // req.body.events should be an array of events
+  if (!Array.isArray(req.body.events)) {
+    return res.status(500).end();
+  }
+
   Promise
     .all(req.body.events.map(handleEvent))
     .then((result) => res.json(result));
@@ -31,11 +37,38 @@ function handleEvent(event) {
     return Promise.resolve(null);
   }
 
+  switch (event.type) {
+    case 'message':
+      const message = event.message;
+      switch (message.type) {
+        case 'text':
+          return handleText(message, event.replyToken, event.source);
+        default:
+          throw new Error(`Unknown message: ${JSON.stringify(message)}`);
+      }
+      break;
+    case 'postback':
+
+      break;
+    default:
+      throw new Error(`Unknown event: ${JSON.stringify(event)}`);
+  }
+
+  return handleText(event.message, event.replyToken, event.source);
+}
+
+function handleText(message, replyToken, source) {
+
   // create a echoing text message
-  const echo = { type: 'text', text: event.message.text };
+  const echo = { type: 'text', text: message.text };
+
+  if (message.text.indexOf('help') != -1) {
+
+
+  }
 
   // use reply API
-  return client.replyMessage(event.replyToken, echo);
+  return client.replyMessage(replyToken, option.newBios.reply);
 }
 
 // listen on port
