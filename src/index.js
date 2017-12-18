@@ -3,6 +3,7 @@
 const line = require('@line/bot-sdk');
 const express = require('express');
 const option = require('./option');
+const util = require('./util');
 
 // create LINE SDK config from env variables
 const config = {
@@ -28,14 +29,11 @@ app.post('/webhook', line.middleware(config), (req, res) => {
   Promise
     .all(req.body.events.map(handleEvent))
     .then((result) => res.json(result));
+
 });
 
 // event handler
 function handleEvent(event) {
-  if (event.type !== 'message' || event.message.type !== 'text') {
-    //ignore non-text-message event
-    return Promise.resolve(null);
-  }
 
   switch (event.type) {
     case 'message':
@@ -46,22 +44,20 @@ function handleEvent(event) {
         default:
           throw new Error(`Unknown message: ${JSON.stringify(message)}`);
       }
-      break;
     case 'postback':
-
-      break;
+      let data = event.postback.data;
+      console.log("postback: " + data);
+      return handlePostback(event.replyToken, data);
     default:
       throw new Error(`Unknown event: ${JSON.stringify(event)}`);
   }
-
-  return handleText(event.message, event.replyToken, event.source);
 }
 
 function handleText(message, replyToken, source) {
 
   // create a echoing text message
   const echo = { type: 'text', text: message.text };
-
+  console.log(message.text);
   if (message.text.indexOf('help') != -1) {
 
 
@@ -71,8 +67,61 @@ function handleText(message, replyToken, source) {
   return client.replyMessage(replyToken, option.newBios.reply);
 }
 
+// simple reply function
+const handlePostback = (token, text) => {
+  let datas = text.split('&');
+  let reply;
+  switch (datas.length) {
+    case 1:
+      
+      reply = util.cloneObject(option.isio.reply);
+      reply.template.actions = reply.template.actions.map(
+        (action, index) => {
+          action.data = text + '&isio=' + action.data;
+          return action;
+        }
+      );
+      return client.replyMessage(token, reply);
+    case 2:
+      
+      reply = util.cloneObject(option.F81216SEC.reply);
+      reply.template.actions = reply.template.actions.map(
+        (action, index) => {
+          action.data = text + '&F81216SEC=' + action.data;
+          return action;
+        }
+      );
+      return client.replyMessage(token, reply);
+    case 3:
+
+      return client.replyMessage(token, {type: 'text', text: 'start build'});
+      break;
+  }
+};
+
+
+
 // listen on port
 const port = process.env.PORT || 3010;
 app.listen(port, () => {
   console.log(`listening on ${port}`);
 });
+
+
+// const pushMessage = {
+//   type: 'text',
+//   text: 'Message push!'
+// }
+// setTimeout(botPushMessage, 10000);
+
+// function botPushMessage() {
+
+//   client.pushMessage("Ud620cb547e8a6daac4c4a03788b20193", pushMessage)
+//   .then(() => {
+//     console.log('Message push');
+//   })
+//   .catch(() => {
+//     console.log('Message push fail');
+//   });
+
+// }
